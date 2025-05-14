@@ -1,16 +1,31 @@
-#ddev-generated
-# Simple template to demonstrate addon-bugsink
+#nOT ddev-generated
+#this uses throwaway sqllite database. can be altered to use sqlite persitant, and preferably the default ddev mysql database
+
 services:
-  addon-bugsink:
-    container_name: ddev-${DDEV_SITENAME}-addon-bugsink
-    image: ${ADDON_BUGSINK_DOCKER_IMAGE:-busybox:stable}
-    command: tail -f /dev/null
-    restart: "no"
-    # These labels ensure this service is discoverable by DDEV.
+  bugsink:
+    image: bugsink/bugsink:1
+    container_name: ddev-${DDEV_SITENAME}-bugsink
+    restart: unless-stopped
+    expose:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: HMLYThim9NybWgXiUGat32Aa0Qbgqscf4NPDQuZO2glcZPOiXn  # Change this (and remove django-insecure prefix), e.g. openssl rand -base64 50
+      CREATE_SUPERUSER: admin:admin  # Change this (or remove it and execute 'createsuperuser' against the running container)
+      VIRTUAL_HOST: $DDEV_HOSTNAME
+      HTTP_EXPOSE: 8001:8000
+      HTTPS_EXPOSE: 8000:8000
+      BEHIND_HTTPS_PROXY: true
+      # DATABASE_URL: mysql://root:change_your_passwords_for_real_usage@mysql:3306/bugsink
     labels:
       com.ddev.site-name: ${DDEV_SITENAME}
       com.ddev.approot: ${DDEV_APPROOT}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import requests; requests.get(\"http://localhost:8000/\").raise_for_status()'"]
+      #test: ["CMD-SHELL", "apt install python3-requests -y && python3 -c 'import requests; requests.get(\"http://localhost:8000/\").raise_for_status()'"]
+      interval: 5s
+      timeout: 20s
+      retries: 10
 
-    volumes:
-      - ".:/mnt/ddev_config"
-      - "ddev-global-cache:/mnt/ddev-global-cache"
+# needs a volume for sqlite database to have persistant data
+# volumes:
+#   my-datavolume:
